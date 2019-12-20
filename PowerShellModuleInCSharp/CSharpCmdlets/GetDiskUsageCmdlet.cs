@@ -85,9 +85,14 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     continue;
                 }
 
+                subDirs = subDirs.OrderBy(x => GetFolderSize(new DirectoryInfo(x))).ToArray();
                 foreach (string dir in subDirs)
+                {
+                    
+                    
                     dirs.Push(dir);
-                
+                }
+
 
                 dirDiff = tempDirectory.FullName.Split('\\').Length - 
                     new DirectoryInfo(currentDir).FullName.Split('\\').Length;
@@ -108,21 +113,21 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     new DirectoryInfo(root).FullName.Split('\\').Length > 3 ? "none" : "inline-block"; //Show directory depth.
 
 
-                long folderSize = (long)GetFolderSize(new DirectoryInfo(currentDir));
+                long folderSize = (long) GetFolderSize(new DirectoryInfo(currentDir));
                 
                 writer.AddAttribute(HtmlTextWriterAttribute.Id,
                     Directory.GetParent(currentDir).Name + "_" + new DirectoryInfo(currentDir).Name);
-                writer.AddAttribute(HtmlTextWriterAttribute.Style, 
+                writer.AddAttribute(HtmlTextWriterAttribute.Style,
                     "border: 1px solid black; " +
                     "padding: 4px; " +
                     "float: left; " +
                     "text-align: left; " +
                     "font-size: 15px;" +
                     "overflow: hidden;" +
-                    "width:" + folderSize/100 + "px;" +
-                    "height:" + folderSize/100 + "px;" +
+                    "width:" + folderSize / 100 + "px;" +
+                    "height:" + folderSize / 100 + "px;" +
                     "display: " + display + ";");
-                writer.RenderBeginTag(HtmlTextWriterTag.Div);
+                    writer.RenderBeginTag(HtmlTextWriterTag.Div);
                 writer.Write(new DirectoryInfo(currentDir).Name);
                 writer.Write(folderSize/1000 + "GB");
 
