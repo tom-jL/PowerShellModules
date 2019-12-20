@@ -34,29 +34,89 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
 
             DriveInfo drive = new DriveInfo(Drive);
             Console.WriteLine("Total Free Space: " + drive.TotalFreeSpace/(1024*1024*1024) + "GB");
-            Console.WriteLine("Volume Label: "+drive.VolumeLabel);
-
-            File.WriteAllText(Export,TraverseTree(Drive));
+            Console.WriteLine("Volume Label: "+ drive.VolumeLabel);
             
-
-
-
-        }
-
-        public static string TraverseTree(string root)
-        {
-            Stack<string> dirs = new Stack<string>(20);
-
-            StringWriter stringWriter = new StringWriter();
-            HtmlTextWriter writer = new HtmlTextWriter(stringWriter);
-
             
-            if (!Directory.Exists(root))
+            if (!Directory.Exists(Drive))
             {
                 throw new ArgumentException();
 
             }
-            dirs.Push(root);
+            
+            StringWriter stringWriter = new StringWriter();
+            HtmlTextWriter writer = new HtmlTextWriter(stringWriter);
+            
+            Console.WriteLine("Directory Size is" + TraverseTree(new DirectoryInfo(Drive), writer));
+                
+            File.WriteAllText(Export, stringWriter.ToString());
+
+
+
+
+        }
+        
+        
+        
+        public static float TraverseTree(DirectoryInfo root, HtmlTextWriter writer)
+        {
+            
+            FileInfo[] files = null;
+            DirectoryInfo[] subDirs = null;
+            
+            float folderSize = 0.0f;
+            
+            try
+            {
+                subDirs = root.GetDirectories();
+                foreach (DirectoryInfo subDir in subDirs)
+                {
+                    // Resursive call for each subdirectory.
+                    folderSize += TraverseTree(subDir, writer);
+                }
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (DirectoryNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            
+         
+            // process all the files directly under this folder
+            try
+            {
+                files = root.GetFiles("*.*");
+            }
+            // This is thrown if even one of the files requires permissions greater
+            // than the application provides.
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (System.IO.DirectoryNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            if (files != null)
+            {
+                foreach (FileInfo file in files)
+                {
+                    float fileSize = (file.Length / 1024f) / 1024f;
+                    folderSize += fileSize;
+                }
+                
+            }
+
+            return folderSize;
+            
+            /*
+                     
+            
+            
+            
             DirectoryInfo tempDirectory = new DirectoryInfo(root);
             int dirDiff = 0;
 
@@ -192,9 +252,8 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
 
             return stringWriter.ToString();
 
-
+        */
         }
-
-       
+        
     }
 }
