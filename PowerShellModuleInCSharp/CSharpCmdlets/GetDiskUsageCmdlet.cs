@@ -1,4 +1,4 @@
-﻿using PowerShellModuleInCSharp.Containers;
+﻿﻿using PowerShellModuleInCSharp.Containers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,89 +34,29 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
 
             DriveInfo drive = new DriveInfo(Drive);
             Console.WriteLine("Total Free Space: " + drive.TotalFreeSpace/(1024*1024*1024) + "GB");
-            Console.WriteLine("Volume Label: "+ drive.VolumeLabel);
-            
-            
-            if (!Directory.Exists(Drive))
-            {
-                throw new ArgumentException();
+            Console.WriteLine("Volume Label: "+drive.VolumeLabel);
 
-            }
+            File.WriteAllText(Export,TraverseTree(Drive));
             
-            StringWriter stringWriter = new StringWriter();
-            HtmlTextWriter writer = new HtmlTextWriter(stringWriter);
-            
-            Console.WriteLine("Directory Size is" + TraverseTree(new DirectoryInfo(Drive), writer));
-                
-            File.WriteAllText(Export, stringWriter.ToString());
-
 
 
 
         }
-        
-        
-        
-        public static float TraverseTree(DirectoryInfo root, HtmlTextWriter writer)
+
+        public static string TraverseTree(string root)
         {
-            
-            FileInfo[] files = null;
-            DirectoryInfo[] subDirs = null;
-            
-            float folderSize = 0.0f;
-            
-            try
-            {
-                subDirs = root.GetDirectories();
-                foreach (DirectoryInfo subDir in subDirs)
-                {
-                    // Resursive call for each subdirectory.
-                    folderSize += TraverseTree(subDir, writer);
-                }
-            }
-            catch (UnauthorizedAccessException e)
-            {
-                Console.WriteLine(e.Message);
-            }
-            catch (DirectoryNotFoundException e)
-            {
-                Console.WriteLine(e.Message);
-            }
-            
-         
-            // process all the files directly under this folder
-            try
-            {
-                files = root.GetFiles("*.*");
-            }
-            // This is thrown if even one of the files requires permissions greater
-            // than the application provides.
-            catch (UnauthorizedAccessException e)
-            {
-                Console.WriteLine(e.Message);
-            }
-            catch (System.IO.DirectoryNotFoundException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            Stack<string> dirs = new Stack<string>(20);
 
-            if (files != null)
-            {
-                foreach (FileInfo file in files)
-                {
-                    float fileSize = (file.Length / 1024f) / 1024f;
-                    folderSize += fileSize;
-                }
-                
-            }
+            StringWriter stringWriter = new StringWriter();
+            HtmlTextWriter writer = new HtmlTextWriter(stringWriter);
 
-            return folderSize;
             
-            /*
-                     
-            
-            
-            
+            if (!Directory.Exists(root))
+            {
+                throw new ArgumentException();
+
+            }
+            dirs.Push(root);
             DirectoryInfo tempDirectory = new DirectoryInfo(root);
             int dirDiff = 0;
 
@@ -165,8 +105,10 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 tempDirectory = new DirectoryInfo(currentDir);
 
                 string display = tempDirectory.FullName.Split('\\').Length -
-                    new DirectoryInfo(root).FullName.Split('\\').Length > 2 ? "none" : "inline-block";
+                    new DirectoryInfo(root).FullName.Split('\\').Length > 3 ? "none" : "inline-block"; //Show directory depth.
 
+
+                long folderSize = (long)GetFolderSize(new DirectoryInfo(currentDir));
                 
                 writer.AddAttribute(HtmlTextWriterAttribute.Id,
                     Directory.GetParent(currentDir).Name + "_" + new DirectoryInfo(currentDir).Name);
@@ -174,20 +116,20 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     "border: 1px solid black; " +
                     "padding: 4px; " +
                     "float: left; " +
-                    //"display: table; " +
                     "text-align: left; " +
                     "font-size: 15px;" +
                     "overflow: hidden;" +
-                    "max-width: 1024px;" +
-                    "max-height: 1024px;" +
+                    "width:" + folderSize/100 + "px;" +
+                    "height:" + folderSize/100 + "px;" +
                     "display: " + display + ";");
                 writer.RenderBeginTag(HtmlTextWriterTag.Div);
                 writer.Write(new DirectoryInfo(currentDir).Name);
+                writer.Write(folderSize/1000 + "GB");
 
 
 
                 string[] files = null;
-                long folderSize = 0;
+                
                 try
                 {
                     
@@ -209,12 +151,11 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     try
                     {
                         FileInfo fi = new FileInfo(file);
-                        folderSize += fi.Length / 1024 / 1024;
                         double fileSize = (fi.Length / 1024f) / 1024f;
                         
                         if (fileSize >= 1)
                         {
-                            fileSize = fileSize > 1000 ? 30 : 10;
+                            //fileSize = fileSize > 1000 ? 30 : 10;
                             writer.AddAttribute(HtmlTextWriterAttribute.Id, fi.Name);
                             writer.AddAttribute(HtmlTextWriterAttribute.Style,
                                 "border: 1px solid black; " +
@@ -223,8 +164,8 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                                 "display: flex; " +
                                 "text-align: left; " +
                                 "font-size: 15px;" +
-                                "width: " + fileSize  + "px;" +
-                                "height: " + fileSize  + "px;" +
+                                "width: " + (long)fileSize/100  + "px;" +
+                                "height: " + (long)fileSize/100  + "px;" +
                                 "background: lightblue;" +
                                 "overflow: hidden;");
                             writer.RenderBeginTag(HtmlTextWriterTag.Div);
@@ -252,8 +193,67 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
 
             return stringWriter.ToString();
 
-        */
+
         }
         
+        public static float GetFolderSize(DirectoryInfo path)
+        {
+
+            FileInfo[] files = null;
+            DirectoryInfo[] subDirs = null;
+
+            float folderSize = 0.0f;
+
+
+            // process all the files directly under this folder
+            try
+            {
+                files = path.GetFiles("*.*");
+            }
+            // This is thrown if even one of the files requires permissions greater
+            // than the application provides.
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (System.IO.DirectoryNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            if (files != null)
+            {
+                foreach (FileInfo file in files)
+                {
+                    float fileSize = (file.Length / 1024f) / 1024f;
+                    folderSize += fileSize;
+                }
+
+            }
+
+            try
+            {
+                subDirs = path.GetDirectories();
+                foreach (DirectoryInfo subDir in subDirs)
+                {
+                    // Resursive call for each subdirectory.
+                    folderSize += GetFolderSize(subDir);
+                }
+
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (DirectoryNotFoundException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            return folderSize;
+
+        }
+
+       
     }
 }
