@@ -1,4 +1,4 @@
-﻿﻿using PowerShellModuleInCSharp.Containers;
+﻿﻿﻿using PowerShellModuleInCSharp.Containers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -81,12 +81,12 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 }
                 catch (UnauthorizedAccessException e)
                 {
-                    //Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                     continue;
                 }
                 catch (DirectoryNotFoundException e)
                 {
-                    //Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                     continue;
                 }
                 catch (IOException e)
@@ -94,18 +94,8 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     continue;
                 }
 
-
-                subDirs = subDirs.OrderBy(x =>
-                {
-                    try
-                    {
-                        return folderSizes[new DirectoryInfo(x).FullName];
-                    }
-                    catch (KeyNotFoundException e)
-                    {
-                        return 1;
-                    }
-                }).ToArray();
+                
+                subDirs = subDirs.Where(x => folderSizes.ContainsKey(new DirectoryInfo(x).FullName)).OrderBy(x => folderSizes[new DirectoryInfo(x).FullName]).ToArray();
                 
 
                 //subDirs = subDirs.OrderBy(x => GetFolderSize(new DirectoryInfo(x))).ToArray();
@@ -120,9 +110,9 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 dirDiff = tempDirectory.FullName.Split('\\').Length - 
                     new DirectoryInfo(currentDir).FullName.Split('\\').Length;
 
-                if (dirDiff > 0)
+                if (dirDiff >= 0)
                 {
-                    for(int i = 0; i < dirDiff; i++)
+                    for(int i = 0; i <= dirDiff; i++)
                     {
                         writer.RenderEndTag();
                         
@@ -139,11 +129,16 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
        
 
                 //long folderSize = (long) GetFolderSize(new DirectoryInfo(currentDir));
-                long folderSize = 100;
+                float folderSize = 1;
+                float parentFolderSize = 100;
                 
                 try
                 {
-                    folderSize = (long) folderSizes[new DirectoryInfo(currentDir).FullName];
+                    folderSize = folderSizes[new DirectoryInfo(currentDir).FullName];
+                    if (currentDir.Equals(root))
+                        parentFolderSize = folderSizes[new DirectoryInfo(currentDir).FullName];
+                    else
+                        parentFolderSize = folderSizes[new DirectoryInfo(currentDir).Parent.FullName];
                 }
                 catch (KeyNotFoundException e)
                 {
@@ -168,8 +163,8 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     "text-align: left; " +
                     "font-size: 15px;" +
                     "overflow: hidden;" +
-                    "width:" + folderSize / 100 + "px;" +
-                    "height:" + folderSize / 100 + "px;" +
+                    "width:" + Math.Sqrt((folderSize) / (parentFolderSize))*100 + "%;" +
+                    "height:" + Math.Sqrt((folderSize) / parentFolderSize)*100 + "%;" +
                     "max-width: 100vw;" +
                     "max-height: 100vh;" +
                     "display: " + display + ";");
@@ -186,12 +181,12 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 }
                 catch (UnauthorizedAccessException e)
                 {
-                    //Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                     continue;
                 }
                 catch (DirectoryNotFoundException e)
                 {
-                    //Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                     continue;
                 }
                 catch (IOException e)
@@ -208,7 +203,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                             FileInfo fi = new FileInfo(file);
                             double fileSize = (fi.Length / 1024f) / 1024f;
 
-                            //if (fileSize >= 1)
+                            if (fileSize >= 1)
                             {
                                 //fileSize = fileSize > 1000 ? 30 : 10;
                                 writer.AddAttribute(HtmlTextWriterAttribute.Id, fi.Name);
@@ -270,11 +265,11 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             // than the application provides.
             catch (UnauthorizedAccessException e)
             {
-                //Console.WriteLine(e.Message);
+                Console.WriteLine(e.Message+ " RECURSE");
             }
             catch (System.IO.DirectoryNotFoundException e)
             {
-               //Console.WriteLine(e.Message);
+               Console.WriteLine(e.Message+ " RECURSE");
             }
             catch (IOException e)
             {
@@ -297,11 +292,11 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             }
             catch (UnauthorizedAccessException e)
             {
-                //Console.WriteLine(e.Message);
+                Console.WriteLine(e.Message+ " RECURSE");
             }
             catch (DirectoryNotFoundException e)
             {
-                //Console.WriteLine(e.Message);
+                Console.WriteLine(e.Message + " RECURSE");
             }
             catch (IOException e)
             {
