@@ -36,7 +36,9 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             Console.WriteLine("Total Free Space: " + drive.TotalFreeSpace/(1024*1024*1024) + "GB");
             Console.WriteLine("Volume Label: "+drive.VolumeLabel);
 
-            File.WriteAllText(Export,TraverseTree(Drive));
+            //File.WriteAllText(Export,TraverseTree(Drive));
+            
+            File.WriteAllText(Export, WriteTreeMap(Drive));
             
 
 
@@ -123,7 +125,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 tempDirectory = new DirectoryInfo(currentDir);
 
                 string display = tempDirectory.FullName.Split('\\').Length -
-                    new DirectoryInfo(root).FullName.Split('\\').Length > 3 ? "none" : "inline-block"; //Show directory depth.
+                    new DirectoryInfo(root).FullName.Split('\\').Length > 3 ? "none" : "block"; //Show directory depth.
                 
                 
        
@@ -155,7 +157,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 {
                     writer.AddAttribute(HtmlTextWriterAttribute.Id, new DirectoryInfo(currentDir).Name);
                 }
-                
+             
                 writer.AddAttribute(HtmlTextWriterAttribute.Style,
                     "border: 1px solid black; " +
                     "padding: 4px; " +
@@ -163,10 +165,11 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     "text-align: left; " +
                     "font-size: 15px;" +
                     "overflow: hidden;" +
-                    "width:" + Math.Sqrt((folderSize) / (parentFolderSize))*100 + "%;" +
-                    "height:" + Math.Sqrt((folderSize) / parentFolderSize)*100 + "%;" +
-                    "max-width: 100vw;" +
-                    "max-height: 100vh;" +
+                    "position: relative;" +
+                    "width:" + (int)((folderSize) / parentFolderSize*100) + "%;" +
+                    "height:" + (int)((folderSize) / parentFolderSize*100) + "%;" +
+                    "max-width: 90vw;" +
+                    "max-height: 90vh;" +
                     "display: " + display + ";");
                     writer.RenderBeginTag(HtmlTextWriterTag.Div);
                 writer.Write(new DirectoryInfo(currentDir).Name);
@@ -193,7 +196,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 {
                     continue;
                 }
-
+                /*
                 if (files != null)
                 {
                     foreach (string file in files)
@@ -203,7 +206,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                             FileInfo fi = new FileInfo(file);
                             double fileSize = (fi.Length / 1024f) / 1024f;
 
-                            if (fileSize >= 1)
+                            if (1 <= fileSize / folderSize * 100)
                             {
                                 //fileSize = fileSize > 1000 ? 30 : 10;
                                 writer.AddAttribute(HtmlTextWriterAttribute.Id, fi.Name);
@@ -211,11 +214,11 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                                     "border: 1px solid black; " +
                                     "padding: 4px; " +
                                     "float: right; " +
-                                    "display: inline-block; " +
+                                    "display: table; " +
                                     "text-align: left; " +
                                     "font-size: 15px;" +
-                                    "width: " + (long) fileSize / 100 + "px;" +
-                                    "height: " + (long) fileSize / 100 + "px;" +
+                                    "width: " + (int)(fileSize / folderSize * 100) + "%;" +
+                                    "height: " + (int)(fileSize / folderSize * 100) + "%;" +
                                     "background: lightblue;" +
                                     "overflow: hidden;");
                                 writer.RenderBeginTag(HtmlTextWriterTag.Div);
@@ -231,7 +234,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                             continue;
                         }
                     }
-                }
+                }*/
 
 
             }
@@ -245,6 +248,86 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             return stringWriter.ToString();
 
 
+        }
+
+        public static string WriteTreeMap(String root)
+        {
+            StringWriter stringWriter = new StringWriter();
+            HtmlTextWriter writer = new HtmlTextWriter(stringWriter);
+            
+            
+            Dictionary<string, float> folderSizes = new Dictionary<string, float>();
+            
+            GetFolderSize(new DirectoryInfo(root), folderSizes);
+            
+            writer.RenderBeginTag(HtmlTextWriterTag.Head);
+            
+            writer.AddAttribute(HtmlTextWriterAttribute.Type, "text/javascript");
+            writer.AddAttribute(HtmlTextWriterAttribute.Src, "https://www.gstatic.com/charts/loader.js");
+            writer.RenderBeginTag(HtmlTextWriterTag.Script);
+            writer.RenderEndTag();
+            
+            /*
+            writer.AddAttribute(HtmlTextWriterAttribute.Type, "text/javascript");
+            writer.AddAttribute(HtmlTextWriterAttribute.Src, "https://www.google.com/jsapi");
+            writer.RenderBeginTag(HtmlTextWriterTag.Script);
+            writer.RenderEndTag();
+            
+            writer.AddAttribute(HtmlTextWriterAttribute.Type, "text/javascript");
+            writer.RenderBeginTag(HtmlTextWriterTag.Script);
+            writer.Write("google.charts.load('current', {packages: ['treemap']});");
+            writer.RenderEndTag();
+            */
+            
+            
+            writer.RenderEndTag();
+            
+            writer.RenderBeginTag(HtmlTextWriterTag.Body);
+            
+            writer.AddAttribute(HtmlTextWriterAttribute.Id, "container");
+            writer.AddAttribute(HtmlTextWriterAttribute.Style,
+                "width: 900px;" +
+                "height: 500px;" +
+                "margin: 0 auto;");
+            writer.RenderBeginTag(HtmlTextWriterTag.Div);
+            writer.RenderEndTag();
+            
+            writer.RenderBeginTag(HtmlTextWriterTag.Script);
+            //writer.WriteAttribute("language", "Javascript");
+            
+            writer.WriteLine("google.charts.load('current', {'packages':['treemap']});");
+            writer.WriteLine("google.charts.setOnLoadCallback(drawChart);");
+            writer.WriteLine("function drawChart() {");
+            //writer.WriteLine("var data = new google.visualization.DataTable();");
+            writer.WriteLine("var data = google.visualization.arrayToDataTable([");
+            writer.WriteLine(
+                "['Path', 'Parent', 'FolderSize', 'color'],");
+            writer.WriteLine("['"+new DirectoryInfo(root).FullName.Replace("\\","\\\\")+"', null, "+folderSizes[new DirectoryInfo(root).FullName]+", 0],");
+            foreach (KeyValuePair<string, float> folder in folderSizes)
+            {
+                if (new DirectoryInfo(folder.Key).FullName != new DirectoryInfo(root).FullName)
+                    writer.WriteLine("[\"" + folder.Key.Replace("\\","\\\\") + "\", \"" + new DirectoryInfo(folder.Key).Parent.FullName.Replace("\\","\\\\") +"\", " +
+                                     folder.Value+ ", 0],");
+            }
+            writer.WriteLine("]);");
+            writer.WriteLine("var options = {");
+            writer.WriteLine("minColor: '#f00',");
+            writer.WriteLine("midColor: '#ddd',");
+            writer.WriteLine("maxColor: '#0d0',");
+            writer.WriteLine("headerHeight: 15,");
+            writer.WriteLine("fontColor: 'black',");
+            writer.WriteLine("showScale: true");
+            writer.WriteLine("};");
+            writer.WriteLine("var chart = new google.visualization.TreeMap(document.getElementById('container'));");
+            writer.WriteLine("chart.draw(data, options);");
+            writer.WriteLine("}");
+            //writer.WriteLine("google.charts.setOnLoadCallback(drawChart);");
+            
+            writer.RenderEndTag();
+            
+            writer.RenderEndTag();
+
+            return stringWriter.ToString();
         }
         
         public static float GetFolderSize(DirectoryInfo path, Dictionary<string,float> folderSizes)
