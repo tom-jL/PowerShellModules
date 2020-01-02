@@ -303,12 +303,24 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.WriteLine(
                 "['Path', 'Parent', 'FolderSize', 'color'],");
             
-            writer.WriteLine("['"+new DirectoryInfo(root).FullName.Replace("\\","\\\\")+"', null, "+folderSizes[new DirectoryInfo(root).FullName]+", 0],");
+            writer.WriteLine("['"+ new DirectoryInfo(root).Name + " " + (folderSizes[new DirectoryInfo(root).FullName]/1024).ToString("0") + "GB" + 
+                             "#" + new DirectoryInfo(root).FullName.Replace("\\","\\\\")+ "', null, "+folderSizes[new DirectoryInfo(root).FullName]+", 0],");
             foreach (KeyValuePair<string, float> folder in folderSizes)
             {
-                if (new DirectoryInfo(folder.Key).FullName != new DirectoryInfo(root).FullName)
-                    writer.WriteLine("[\"" + folder.Key.Replace("\\","\\\\") + "\", \"" + new DirectoryInfo(folder.Key).Parent.FullName.Replace("\\","\\\\") +"\", " +
-                                     folder.Value+ ", "+ folder.Key.Count(x => x == '\\')*1000 +"],");
+                if (new DirectoryInfo(folder.Key).FullName != new DirectoryInfo(root).FullName && folder.Value > 10)
+                {
+                    string size = folder.Value > 1024 ? (folder.Value / 1024).ToString("0") + "GB" : folder.Value.ToString("0") + "MB";
+                    float parentSize = folderSizes[new DirectoryInfo(folder.Key).Parent.FullName];
+                    string parentLabel = parentSize > 1024 ? (parentSize / 1024).ToString("0") + "GB" : parentSize.ToString("0") + "MB";
+                    string name = new DirectoryInfo(folder.Key).Name;
+                    string path = name + " " + size + "#" + folder.Key.Replace("\\", "\\\\");
+                    string parentName = new DirectoryInfo(folder.Key).Parent.Name;
+                    string parent = parentName + " " + parentLabel + "#" + new DirectoryInfo(folder.Key).Parent.FullName.Replace("\\", "\\\\");
+                    float folderSize = folder.Value;
+                    int color = folder.Key.Count(x => x == '\\') * 1000;
+                    
+                    writer.WriteLine("[\"" + path + "\", \"" + parent + "\", " + folderSize + ", " + color + "],");
+                }
             }
             /*
             writer.WriteLine("['"+new DirectoryInfo(root).Name + new DirectoryInfo(root).FullName.Length +"', null, "+folderSizes[new DirectoryInfo(root).FullName]+", 0],");
@@ -329,17 +341,21 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.WriteLine("headerHeight: 15,");
             writer.WriteLine("fontColor: 'black',");
             writer.WriteLine("showScale: false,");
+            writer.WriteLine("maxDepth: 3,");
             writer.WriteLine("highlightOnMouseOver: true,");
             writer.WriteLine("minHighlightColor: '#8c6bb1',");
             writer.WriteLine("midHighlightColor: '#9ebcda',");
             writer.WriteLine("maxHighlightColor: '#edf8fb',");
+            writer.WriteLine("generateTooltip: showStaticTooltip");
             writer.WriteLine("};");
             
             writer.WriteLine("var container = document.getElementById('container');");
             writer.WriteLine("var tree = new google.visualization.TreeMap(container);");
             writer.WriteLine("var newLabelCoords = {x: 8, y: 16};");
-            writer.WriteLine("google.visualization.events.addListener(tree,'ready',addChildLabels);");
-            writer.WriteLine("google.visualization.events.addListener(tree,'select',addChildLabels);");
+            
+            writer.WriteLine("google.visualization.events.addListener(tree,'ready',moveOriginalLabels);");
+            writer.WriteLine("google.visualization.events.addListener(tree,'select',moveOriginalLabels);");
+            
             writer.WriteLine("var observer = new MutationObserver(moveOriginalLabels);");
             writer.WriteLine("observer.observe(container, { childList: true, subtree: true});");
             
@@ -347,17 +363,17 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.WriteLine("Array.prototype.forEach.call(container.getElementsByTagName('text'), function(text) {");
             writer.WriteLine("var bounds = text.getBBox();");
             writer.WriteLine("var rect = text.parentNode.getElementsByTagName('rect')[0];");
+            writer.WriteLine("var pathName = text.textContent.split('#');");
+            writer.WriteLine("text.textContent = pathName[0];");
             writer.WriteLine("if ((rect.getAttribute('fill') !== '#cccccc') && (text.getAttribute('text-anchor') === 'middle')) {");
             writer.WriteLine("text.setAttribute('fill', '#424242');");
             writer.WriteLine("text.setAttribute('font-weight','bold');");
             writer.WriteLine("text.setAttribute('x', parseFloat(rect.getAttribute('x')) + newLabelCoords.x + (bounds.width / 2))");
             writer.WriteLine("text.setAttribute('y', parseFloat(rect.getAttribute('y')) + newLabelCoords.y);");
-            writer.WriteLine("var pathName = text.textContent.split('\\\\');");
-            writer.WriteLine("text.textContent = pathName[pathName.length-1];");
             writer.WriteLine("}");
             writer.WriteLine("});");
             writer.WriteLine("}");
-
+            /*
             writer.WriteLine("function addChildLabels() {");
             writer.WriteLine("var childCount = [];");
             writer.WriteLine("var childLabels = [];");
@@ -392,11 +408,16 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.WriteLine("text[0].parentNode.appendChild(text[1]);");
             writer.WriteLine("});");
             writer.WriteLine("}");
+            */
             
             writer.WriteLine("drawTree();");
             writer.WriteLine("window.addEventListener('resize',drawTree);");
             writer.WriteLine("function drawTree() {");
             writer.WriteLine("tree.draw(data, options);");
+            writer.WriteLine("}");
+            writer.WriteLine("function showStaticTooltip(row, size, value) {");
+            writer.WriteLine("return \"<div style='background:#fd9; padding:10px; border-style:solid'>\" +");
+            writer.WriteLine("data.getValue(row, 0).split('#')[1] + \"</div>\";");
             writer.WriteLine("}");
             writer.WriteLine("}");
             
