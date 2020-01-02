@@ -302,25 +302,104 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.WriteLine("var data = google.visualization.arrayToDataTable([");
             writer.WriteLine(
                 "['Path', 'Parent', 'FolderSize', 'color'],");
+            
             writer.WriteLine("['"+new DirectoryInfo(root).FullName.Replace("\\","\\\\")+"', null, "+folderSizes[new DirectoryInfo(root).FullName]+", 0],");
             foreach (KeyValuePair<string, float> folder in folderSizes)
             {
                 if (new DirectoryInfo(folder.Key).FullName != new DirectoryInfo(root).FullName)
                     writer.WriteLine("[\"" + folder.Key.Replace("\\","\\\\") + "\", \"" + new DirectoryInfo(folder.Key).Parent.FullName.Replace("\\","\\\\") +"\", " +
-                                     folder.Value+ ", 0],");
+                                     folder.Value+ ", "+ folder.Key.Count(x => x == '\\')*1000 +"],");
             }
+            /*
+            writer.WriteLine("['"+new DirectoryInfo(root).Name + new DirectoryInfo(root).FullName.Length +"', null, "+folderSizes[new DirectoryInfo(root).FullName]+", 0],");
+            foreach (KeyValuePair<string, float> folder in folderSizes)
+            {
+                if (new DirectoryInfo(folder.Key).FullName == new DirectoryInfo(root).FullName) continue;
+                writer.WriteLine("[\""+ new DirectoryInfo(folder.Key).Name + new DirectoryInfo(folder.Key).FullName.Length + "\", \"" + new DirectoryInfo(folder.Key).Parent.Name +
+                                 new DirectoryInfo(folder.Key).Parent.FullName.Length +"\", " +
+                                     folder.Value+ ", 1],");
+            }*/
+            
+
             writer.WriteLine("]);");
             writer.WriteLine("var options = {");
-            writer.WriteLine("minColor: '#f00',");
-            writer.WriteLine("midColor: '#ddd',");
-            writer.WriteLine("maxColor: '#0d0',");
+            writer.WriteLine("minColor: '#009688',");
+            writer.WriteLine("midColor: '#f54242',");
+            writer.WriteLine("maxColor: '#ee8100',");
             writer.WriteLine("headerHeight: 15,");
             writer.WriteLine("fontColor: 'black',");
-            writer.WriteLine("showScale: true");
+            writer.WriteLine("showScale: false,");
+            writer.WriteLine("highlightOnMouseOver: true,");
+            writer.WriteLine("minHighlightColor: '#8c6bb1',");
+            writer.WriteLine("midHighlightColor: '#9ebcda',");
+            writer.WriteLine("maxHighlightColor: '#edf8fb',");
             writer.WriteLine("};");
-            writer.WriteLine("var chart = new google.visualization.TreeMap(document.getElementById('container'));");
-            writer.WriteLine("chart.draw(data, options);");
+            
+            writer.WriteLine("var container = document.getElementById('container');");
+            writer.WriteLine("var tree = new google.visualization.TreeMap(container);");
+            writer.WriteLine("var newLabelCoords = {x: 8, y: 16};");
+            writer.WriteLine("google.visualization.events.addListener(tree,'ready',addChildLabels);");
+            writer.WriteLine("google.visualization.events.addListener(tree,'select',addChildLabels);");
+            writer.WriteLine("var observer = new MutationObserver(moveOriginalLabels);");
+            writer.WriteLine("observer.observe(container, { childList: true, subtree: true});");
+            
+            writer.WriteLine("function moveOriginalLabels() {");
+            writer.WriteLine("Array.prototype.forEach.call(container.getElementsByTagName('text'), function(text) {");
+            writer.WriteLine("var bounds = text.getBBox();");
+            writer.WriteLine("var rect = text.parentNode.getElementsByTagName('rect')[0];");
+            writer.WriteLine("if ((rect.getAttribute('fill') !== '#cccccc') && (text.getAttribute('text-anchor') === 'middle')) {");
+            writer.WriteLine("text.setAttribute('fill', '#424242');");
+            writer.WriteLine("text.setAttribute('font-weight','bold');");
+            writer.WriteLine("text.setAttribute('x', parseFloat(rect.getAttribute('x')) + newLabelCoords.x + (bounds.width / 2))");
+            writer.WriteLine("text.setAttribute('y', parseFloat(rect.getAttribute('y')) + newLabelCoords.y);");
+            writer.WriteLine("var pathName = text.textContent.split('\\\\');");
+            writer.WriteLine("text.textContent = pathName[pathName.length-1];");
             writer.WriteLine("}");
+            writer.WriteLine("});");
+            writer.WriteLine("}");
+
+            writer.WriteLine("function addChildLabels() {");
+            writer.WriteLine("var childCount = [];");
+            writer.WriteLine("var childLabels = [];");
+            writer.WriteLine("var svgNS = container.getElementsByTagName('svg')[0].namespaceURI;");
+            writer.WriteLine("Array.prototype.forEach.call(container.getElementsByTagName('text'), function(text) {");
+            writer.WriteLine("if (text.getAttribute('text-anchor') === 'middle') {");
+            writer.WriteLine("var rect = text.parentNode.getElementsByTagName('rect')[0];");
+            writer.WriteLine("if ((rect.getAttribute('fill') !== '#cccccc') && (rect.getAttribute('width') > 25) && (rect.getAttribute('height') > 25)) {");
+            writer.WriteLine("moveOriginalLabels();");
+            writer.WriteLine("var nodeValue;");
+            writer.WriteLine("for (var i = 0; i < data.getNumberOfRows(); i++) {");
+            writer.WriteLine("if ((data.getValue(i,0) === text.textContent) ||");
+            writer.WriteLine("(data.getFormattedValue(i,0) === text.textContent)){");
+            writer.WriteLine("nodeValue = data.getValue(i,2);");
+            writer.WriteLine("}");
+            writer.WriteLine("}");
+            
+            writer.WriteLine("var textLabel = document.createElementNS(svgNS, 'text');");
+            writer.WriteLine("textLabel.setAttribute('fill', '#000000');");
+            writer.WriteLine("textLabel.setAttribute('font-family', 'Arial');");
+            writer.WriteLine("textLabel.setAttribute('font-size', text.getAttribute('font-size'));");
+            writer.WriteLine("textLabel.setAttribute('font-weight', 'bold');");
+            writer.WriteLine("textLabel.setAttribute('x', parseFloat(rect.getAttribute('x')) + newLabelCoords.x);");
+            writer.WriteLine("textLabel.setAttribute('y', parseFloat(text.getAttribute('y')) + parseFloat(textLabel.getAttribute('font-size')) + 2);");
+            writer.WriteLine("textLabel.textContent = (parseFloat(nodeValue) / 1024) + 'GB';");
+            writer.WriteLine("childLabels.push([text, textLabel]);");
+            writer.WriteLine("}");
+            writer.WriteLine("}");
+            writer.WriteLine("});");
+            
+            writer.WriteLine("childLabels.forEach(function (text) {");
+            writer.WriteLine("text[0].parentNode.appendChild(text[1]);");
+            writer.WriteLine("});");
+            writer.WriteLine("}");
+            
+            writer.WriteLine("drawTree();");
+            writer.WriteLine("window.addEventListener('resize',drawTree);");
+            writer.WriteLine("function drawTree() {");
+            writer.WriteLine("tree.draw(data, options);");
+            writer.WriteLine("}");
+            writer.WriteLine("}");
+            
             //writer.WriteLine("google.charts.setOnLoadCallback(drawChart);");
             
             writer.RenderEndTag();
@@ -348,11 +427,11 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             // than the application provides.
             catch (UnauthorizedAccessException e)
             {
-                Console.WriteLine(e.Message+ " RECURSE");
+                //Console.WriteLine(e.Message+ " RECURSE");
             }
             catch (System.IO.DirectoryNotFoundException e)
             {
-               Console.WriteLine(e.Message+ " RECURSE");
+               //Console.WriteLine(e.Message+ " RECURSE");
             }
             catch (IOException e)
             {
@@ -375,11 +454,11 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             }
             catch (UnauthorizedAccessException e)
             {
-                Console.WriteLine(e.Message+ " RECURSE");
+                //Console.WriteLine(e.Message+ " RECURSE");
             }
             catch (DirectoryNotFoundException e)
             {
-                Console.WriteLine(e.Message + " RECURSE");
+                //Console.WriteLine(e.Message + " RECURSE");
             }
             catch (IOException e)
             {
