@@ -100,7 +100,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 subDirs = subDirs.Where(x => folderSizes.ContainsKey(new DirectoryInfo(x).FullName)).OrderBy(x => folderSizes[new DirectoryInfo(x).FullName]).ToArray();
                 
 
-                //subDirs = subDirs.OrderBy(x => GetFolderSize(new DirectoryInfo(x))).ToArray();
+              
                 foreach (string dir in subDirs)
                 {
                     dirs.Push(dir);
@@ -130,7 +130,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 
        
 
-                //long folderSize = (long) GetFolderSize(new DirectoryInfo(currentDir));
+               
                 float folderSize = 1;
                 float parentFolderSize = 100;
                 
@@ -196,47 +196,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                 {
                     continue;
                 }
-                /*
-                if (files != null)
-                {
-                    foreach (string file in files)
-                    {
-                        try
-                        {
-                            FileInfo fi = new FileInfo(file);
-                            double fileSize = (fi.Length / 1024f) / 1024f;
-
-                            if (1 <= fileSize / folderSize * 100)
-                            {
-                                //fileSize = fileSize > 1000 ? 30 : 10;
-                                writer.AddAttribute(HtmlTextWriterAttribute.Id, fi.Name);
-                                writer.AddAttribute(HtmlTextWriterAttribute.Style,
-                                    "border: 1px solid black; " +
-                                    "padding: 4px; " +
-                                    "float: right; " +
-                                    "display: table; " +
-                                    "text-align: left; " +
-                                    "font-size: 15px;" +
-                                    "width: " + (int)(fileSize / folderSize * 100) + "%;" +
-                                    "height: " + (int)(fileSize / folderSize * 100) + "%;" +
-                                    "background: lightblue;" +
-                                    "overflow: hidden;");
-                                writer.RenderBeginTag(HtmlTextWriterTag.Div);
-                                writer.Write(fi.Name);
-                                writer.RenderEndTag();
-                            }
-
-                            //Console.WriteLine(fi.FullName);
-                        }
-                        catch (FileNotFoundException e)
-                        {
-                            //Console.WriteLine(e.Message);
-                            continue;
-                        }
-                    }
-                }*/
-
-
+       
             }
 
             dirDiff = tempDirectory.FullName.Split('\\').Length -
@@ -267,17 +227,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.RenderBeginTag(HtmlTextWriterTag.Script);
             writer.RenderEndTag();
             
-            /*
-            writer.AddAttribute(HtmlTextWriterAttribute.Type, "text/javascript");
-            writer.AddAttribute(HtmlTextWriterAttribute.Src, "https://www.google.com/jsapi");
-            writer.RenderBeginTag(HtmlTextWriterTag.Script);
-            writer.RenderEndTag();
-            
-            writer.AddAttribute(HtmlTextWriterAttribute.Type, "text/javascript");
-            writer.RenderBeginTag(HtmlTextWriterTag.Script);
-            writer.Write("google.charts.load('current', {packages: ['treemap']});");
-            writer.RenderEndTag();
-            */
+   
             
             
             writer.RenderEndTag();
@@ -293,8 +243,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.RenderEndTag();
             
             writer.RenderBeginTag(HtmlTextWriterTag.Script);
-            //writer.WriteAttribute("language", "Javascript");
-            
+                  
             writer.WriteLine("google.charts.load('current', {'packages':['treemap']});");
             writer.WriteLine("google.charts.setOnLoadCallback(drawChart);");
             writer.WriteLine("function drawChart() {");
@@ -322,16 +271,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
                     writer.WriteLine("[\"" + path + "\", \"" + parent + "\", " + folderSize + ", " + color + "],");
                 }
             }
-            /*
-            writer.WriteLine("['"+new DirectoryInfo(root).Name + new DirectoryInfo(root).FullName.Length +"', null, "+folderSizes[new DirectoryInfo(root).FullName]+", 0],");
-            foreach (KeyValuePair<string, float> folder in folderSizes)
-            {
-                if (new DirectoryInfo(folder.Key).FullName == new DirectoryInfo(root).FullName) continue;
-                writer.WriteLine("[\""+ new DirectoryInfo(folder.Key).Name + new DirectoryInfo(folder.Key).FullName.Length + "\", \"" + new DirectoryInfo(folder.Key).Parent.Name +
-                                 new DirectoryInfo(folder.Key).Parent.FullName.Length +"\", " +
-                                     folder.Value+ ", 1],");
-            }*/
-            
+                  
 
             writer.WriteLine("]);");
             writer.WriteLine("var options = {");
@@ -373,43 +313,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.WriteLine("}");
             writer.WriteLine("});");
             writer.WriteLine("}");
-            /*
-            writer.WriteLine("function addChildLabels() {");
-            writer.WriteLine("var childCount = [];");
-            writer.WriteLine("var childLabels = [];");
-            writer.WriteLine("var svgNS = container.getElementsByTagName('svg')[0].namespaceURI;");
-            writer.WriteLine("Array.prototype.forEach.call(container.getElementsByTagName('text'), function(text) {");
-            writer.WriteLine("if (text.getAttribute('text-anchor') === 'middle') {");
-            writer.WriteLine("var rect = text.parentNode.getElementsByTagName('rect')[0];");
-            writer.WriteLine("if ((rect.getAttribute('fill') !== '#cccccc') && (rect.getAttribute('width') > 25) && (rect.getAttribute('height') > 25)) {");
-            writer.WriteLine("moveOriginalLabels();");
-            writer.WriteLine("var nodeValue;");
-            writer.WriteLine("for (var i = 0; i < data.getNumberOfRows(); i++) {");
-            writer.WriteLine("if ((data.getValue(i,0) === text.textContent) ||");
-            writer.WriteLine("(data.getFormattedValue(i,0) === text.textContent)){");
-            writer.WriteLine("nodeValue = data.getValue(i,2);");
-            writer.WriteLine("}");
-            writer.WriteLine("}");
-            
-            writer.WriteLine("var textLabel = document.createElementNS(svgNS, 'text');");
-            writer.WriteLine("textLabel.setAttribute('fill', '#000000');");
-            writer.WriteLine("textLabel.setAttribute('font-family', 'Arial');");
-            writer.WriteLine("textLabel.setAttribute('font-size', text.getAttribute('font-size'));");
-            writer.WriteLine("textLabel.setAttribute('font-weight', 'bold');");
-            writer.WriteLine("textLabel.setAttribute('x', parseFloat(rect.getAttribute('x')) + newLabelCoords.x);");
-            writer.WriteLine("textLabel.setAttribute('y', parseFloat(text.getAttribute('y')) + parseFloat(textLabel.getAttribute('font-size')) + 2);");
-            writer.WriteLine("textLabel.textContent = (parseFloat(nodeValue) / 1024) + 'GB';");
-            writer.WriteLine("childLabels.push([text, textLabel]);");
-            writer.WriteLine("}");
-            writer.WriteLine("}");
-            writer.WriteLine("});");
-            
-            writer.WriteLine("childLabels.forEach(function (text) {");
-            writer.WriteLine("text[0].parentNode.appendChild(text[1]);");
-            writer.WriteLine("});");
-            writer.WriteLine("}");
-            */
-            
+                       
             writer.WriteLine("drawTree();");
             writer.WriteLine("window.addEventListener('resize',drawTree);");
             writer.WriteLine("function drawTree() {");
@@ -421,8 +325,7 @@ namespace PowerShellModuleInCSharp.CSharpCmdlets
             writer.WriteLine("}");
             writer.WriteLine("}");
             
-            //writer.WriteLine("google.charts.setOnLoadCallback(drawChart);");
-            
+           
             writer.RenderEndTag();
             
             writer.RenderEndTag();
